@@ -58,7 +58,10 @@
   <section class="view hidden" id="view-players">
     <div class="view-head">
       <h2>Players</h2>
-      <button class="btn btn-primary" id="open-add-player">+ Add Player</button>
+      <div class="controls">
+        <button class="btn btn-ghost" id="open-bulk-add">Bulk Add</button>
+        <button class="btn btn-primary" id="open-add-player">+ Add Player</button>
+      </div>
     </div>
     <div id="players-empty" class="empty hidden">
       <p>The tour has no players yet.</p>
@@ -158,9 +161,10 @@
       <label>Full name
         <input type="text" id="ap-name" required maxlength="60" placeholder="e.g. Naomi Callejas">
       </label>
-      <label>Country code (3-letter, optional)
+      <label>Country code (2 or 3-letter, optional)
         <input type="text" id="ap-country" maxlength="3" placeholder="e.g. ESP">
       </label>
+      <p class="field-hint" id="ap-flag-preview"></p>
       <label>Plays
         <select id="ap-hand">
           <option value="R">Right-handed</option>
@@ -170,6 +174,22 @@
       <div class="form-actions">
         <button type="button" class="btn btn-ghost" id="ap-cancel">Cancel</button>
         <button type="submit" class="btn btn-primary">Add Player</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Bulk add players modal -->
+<div class="modal-backdrop hidden" id="bulk-add-backdrop">
+  <div class="modal">
+    <form id="bulk-add-form">
+      <h3>Bulk Add Players</h3>
+      <p class="modal-help">One player per line: <code>Name, COU</code>. The country code is optional but powers the flag — use a 2 or 3-letter code (e.g. ESP, KEN, JPN, US).</p>
+      <textarea id="ba-textarea" rows="10" placeholder="Amara Solis, KEN&#10;Priya Nandan, IND&#10;Elin Kask, EST&#10;Noor Al-Fahad"></textarea>
+      <div class="form-actions">
+        <button type="button" class="btn btn-ghost" id="ba-cancel">Close</button>
+        <button type="submit" class="btn btn-primary">Add Players</button>
+        <span class="form-msg" id="ba-msg"></span>
       </div>
     </form>
   </div>

@@ -13,6 +13,52 @@ const POINTS_TABLE = {
   WTA250:     {R128:0,  R64:0,   R32:0,   R16:30,  QF:54,  SF:98,  F:163,  W:250}
 };
 
+// Common tennis-broadcast 3-letter codes -> ISO 3166-1 alpha-2 (for flag emoji).
+// 2-letter codes are assumed to already be ISO alpha-2 and used directly.
+const COUNTRY_CODE_MAP = {
+  USA:"US", GBR:"GB", ESP:"ES", FRA:"FR", GER:"DE", ITA:"IT", RUS:"RU", CHN:"CN",
+  JPN:"JP", AUS:"AU", CAN:"CA", BRA:"BR", ARG:"AR", MEX:"MX", POL:"PL", CZE:"CZ",
+  SVK:"SK", SUI:"CH", SWE:"SE", NOR:"NO", DEN:"DK", FIN:"FI", NED:"NL", BEL:"BE",
+  AUT:"AT", GRE:"GR", POR:"PT", ROU:"RO", SRB:"RS", CRO:"HR", UKR:"UA", BLR:"BY",
+  KAZ:"KZ", IND:"IN", KOR:"KR", THA:"TH", INA:"ID", PHI:"PH", VIE:"VN", TPE:"TW",
+  HKG:"HK", SGP:"SG", MAS:"MY", NZL:"NZ", RSA:"ZA", EGY:"EG", MAR:"MA", TUN:"TN",
+  ALG:"DZ", NGR:"NG", KEN:"KE", ETH:"ET", GHA:"GH", ISR:"IL", TUR:"TR", UAE:"AE",
+  KSA:"SA", QAT:"QA", IRI:"IR", PAK:"PK", BAN:"BD", SRI:"LK", COL:"CO", CHI:"CL",
+  PER:"PE", VEN:"VE", ECU:"EC", URU:"UY", PAR:"PY", BOL:"BO", CUB:"CU", DOM:"DO",
+  JAM:"JM", PUR:"PR", CRC:"CR", PAN:"PA", GUA:"GT", HON:"HN", ISL:"IS", IRL:"IE",
+  LTU:"LT", LAT:"LV", LVA:"LV", EST:"EE", SLO:"SI", SVN:"SI", BUL:"BG", HUN:"HU",
+  MDA:"MD", ARM:"AM", GEO:"GE", AZE:"AZ", UZB:"UZ", MGL:"MN", LUX:"LU", MON:"MC",
+  AND:"AD", CYP:"CY", MLT:"MT", ALB:"AL", MKD:"MK", BIH:"BA", MNE:"ME", KOS:"XK"
+};
+
+function countryToISO2(code){
+  if(!code) return null;
+  const c = code.trim().toUpperCase();
+  if(c.length === 2) return c;
+  if(c.length === 3 && COUNTRY_CODE_MAP[c]) return COUNTRY_CODE_MAP[c];
+  return null;
+}
+function flagEmoji(code){
+  const iso2 = countryToISO2(code);
+  if(!iso2) return null;
+  try{
+    const points = [...iso2].map(ch => 127397 + ch.charCodeAt(0));
+    return String.fromCodePoint(...points);
+  }catch(e){ return null; }
+}
+// Flag + code, for standalone country display (tables, cards).
+function countryDisplayHTML(code){
+  if(!code) return "—";
+  const flag = flagEmoji(code);
+  return (flag ? '<span class="flag">' + flag + '</span>' : "") + escapeHtml(code.toUpperCase());
+}
+// Flag + name, for use in front of a player's name anywhere it appears.
+function playerNameHTML(player){
+  if(!player) return "";
+  const flag = flagEmoji(player.country);
+  return (flag ? '<span class="flag">' + flag + '</span>' : "") + escapeHtml(player.name);
+}
+
 /* ---------------- Storage ---------------- */
 function loadState(){
   try{
@@ -186,7 +232,7 @@ function renderRankings(){
     return '<tr>' +
       '<td class="rank-col"><span class="' + rankClass + '">' + rank + '</span></td>' +
       '<td><button class="player-link" data-open-player="' + r.p.id + '">' + escapeHtml(r.p.name) + '</button></td>' +
-      '<td class="country-chip">' + (r.p.country ? escapeHtml(r.p.country.toUpperCase()) : "—") + '</td>' +
+      '<td class="country-chip">' + countryDisplayHTML(r.p.country) + '</td>' +
       '<td>' + r.stats.titles + '</td>' +
       '<td class="points-cell">' + r.stats.points.toLocaleString() + '</td>' +
       '</tr>';
@@ -209,7 +255,7 @@ function renderPlayers(){
   sorted.forEach(p => {
     const stats = totals.get(p.id) || {points:0, titles:0};
     const card = el("div", {class:"player-card", "data-open-player": p.id}, [
-      el("div", {class:"pc-name"}, [p.name]),
+      el("div", {class:"pc-name", html: playerNameHTML(p)}),
       el("div", {class:"pc-meta"}, [
         el("span", {}, [(p.country ? p.country.toUpperCase() : "—")]),
         el("span", {}, [stats.points.toLocaleString() + " pts"])
@@ -244,7 +290,7 @@ function renderPlayerProfile(playerId){
   modal.innerHTML = "";
   modal.appendChild(el("div", {class:"profile-head"}, [
     el("div", {}, [
-      el("div", {class:"profile-name"}, [p.name]),
+      el("div", {class:"profile-name", html: playerNameHTML(p)}),
       el("div", {class:"profile-meta"}, [
         (p.country ? p.country.toUpperCase() : "—") + " · " + (p.hand === "L" ? "Left-handed" : "Right-handed")
       ])
@@ -283,9 +329,9 @@ function renderPlayerProfile(playerId){
       const row = el("div", {class:"match-row"}, [
         el("span", {class:"match-round"}, [ROUND_LABELS[m.round]]),
         el("span", {class:"match-players", html:
-          (m.winnerId === a.id ? '<span class="winner">' + escapeHtml(a.name) + '</span>' : escapeHtml(a.name)) +
+          (m.winnerId === a.id ? '<span class="winner">' + playerNameHTML(a) + '</span>' : playerNameHTML(a)) +
           ' def. ' +
-          (m.winnerId === b.id ? '<span class="winner">' + escapeHtml(b.name) + '</span>' : escapeHtml(b.name))
+          (m.winnerId === b.id ? '<span class="winner">' + playerNameHTML(b) + '</span>' : playerNameHTML(b))
         }),
         el("span", {html: renderScoreboardHTML(m)}),
         el("span", {class:"match-tourney"}, [t ? (t.name + " '" + String(t.year).slice(-2)) : ""])
@@ -337,7 +383,7 @@ function renderTournaments(){
           el("span", {class:"surface-tag surface-" + t.surface}, [t.surface]),
           el("span", {class:"tourney-name"}, [t.name]),
           el("span", {class:"tourney-champ"}, champ
-            ? ["Champion: ", el("b", {}, [champ.name])]
+            ? ["Champion: ", el("b", {html: playerNameHTML(champ)})]
             : [matchesForTournament(t.id).length ? "In progress" : "No results yet"])
         ]);
         group.appendChild(row);
@@ -366,7 +412,10 @@ function refreshMatchFormOptions(){
   rSel.value = "F";
 
   const playersSorted = [...state.players].sort((a,b) => a.name.localeCompare(b.name));
-  const optionsHTML = playersSorted.map(p => '<option value="' + p.id + '">' + escapeHtml(p.name) + "</option>").join("");
+  const optionsHTML = playersSorted.map(p => {
+    const flag = flagEmoji(p.country);
+    return '<option value="' + p.id + '">' + (flag ? flag + " " : "") + escapeHtml(p.name) + "</option>";
+  }).join("");
   const aSel = $("#mf-playerA"), bSel = $("#mf-playerB");
   const prevA = aSel.value, prevB = bSel.value;
   aSel.innerHTML = optionsHTML;
@@ -403,8 +452,8 @@ function updateWinnerOptions(){
   const wSel = $("#mf-winner");
   const prev = wSel.value;
   wSel.innerHTML = "";
-  if(a) wSel.appendChild(el("option", {value:a.id}, [a.name]));
-  if(b) wSel.appendChild(el("option", {value:b.id}, [b.name]));
+  if(a) wSel.appendChild(el("option", {value:a.id, html: playerNameHTML(a)}));
+  if(b) wSel.appendChild(el("option", {value:b.id, html: playerNameHTML(b)}));
   if(prev && (prev === aId || prev === bId)) wSel.value = prev;
 }
 
@@ -509,9 +558,9 @@ function renderHistory(){
     const row = el("div", {class:"match-row"}, [
       el("span", {class:"match-round"}, [ROUND_LABELS[m.round]]),
       el("span", {class:"match-players", html:
-        (m.winnerId === a.id ? '<span class="winner">' + escapeHtml(a.name) + '</span>' : escapeHtml(a.name)) +
+        (m.winnerId === a.id ? '<span class="winner">' + playerNameHTML(a) + '</span>' : playerNameHTML(a)) +
         ' def. ' +
-        (m.winnerId === b.id ? '<span class="winner">' + escapeHtml(b.name) + '</span>' : escapeHtml(b.name))
+        (m.winnerId === b.id ? '<span class="winner">' + playerNameHTML(b) + '</span>' : playerNameHTML(b))
       }),
       el("span", {html: renderScoreboardHTML(m)}),
       el("span", {class:"match-tourney"}, [t ? (t.name + " '" + String(t.year).slice(-2)) : "—"]),
@@ -521,9 +570,57 @@ function renderHistory(){
   });
 }
 
-/* ---------------- Modals: add player / add tournament ---------------- */
-function openAddPlayer(){ $("#add-player-backdrop").classList.remove("hidden"); $("#ap-name").focus(); }
-function closeAddPlayer(){ $("#add-player-backdrop").classList.add("hidden"); $("#add-player-form").reset(); }
+/* ---------------- Modals: add player / bulk add / add tournament ---------------- */
+function openAddPlayer(){ $("#add-player-backdrop").classList.remove("hidden"); $("#ap-name").focus(); updateFlagPreview(); }
+function closeAddPlayer(){ $("#add-player-backdrop").classList.add("hidden"); $("#add-player-form").reset(); updateFlagPreview(); }
+function updateFlagPreview(){
+  const code = $("#ap-country").value;
+  const flag = flagEmoji(code);
+  $("#ap-flag-preview").textContent = flag ? flag + " " + code.toUpperCase() : (code ? "No flag found for that code" : "");
+}
+
+function openBulkAdd(){ $("#bulk-add-backdrop").classList.remove("hidden"); $("#ba-textarea").focus(); }
+function closeBulkAdd(){ $("#bulk-add-backdrop").classList.add("hidden"); $("#ba-textarea").value = ""; $("#ba-msg").textContent = ""; }
+
+function handleBulkAdd(ev){
+  ev.preventDefault();
+  const raw = $("#ba-textarea").value;
+  const msg = $("#ba-msg");
+  const lines = raw.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+
+  if(lines.length === 0){
+    msg.textContent = "Paste at least one player first.";
+    msg.className = "form-msg";
+    return;
+  }
+
+  const existingNames = new Set(state.players.map(p => p.name.trim().toLowerCase()));
+  let added = 0, skippedDup = 0;
+
+  lines.forEach(line => {
+    const parts = line.split(",");
+    const name = parts[0].trim();
+    const country = parts.length > 1 ? parts[1].trim().toUpperCase().slice(0,3) : "";
+    if(!name) return;
+    const key = name.toLowerCase();
+    if(existingNames.has(key)){ skippedDup++; return; }
+    existingNames.add(key);
+    state.players.push({id: uid("p"), name, country, hand: "R", createdAt: Date.now()});
+    added++;
+  });
+
+  if(added > 0) saveState();
+
+  let text = added === 1 ? "Added 1 player." : "Added " + added + " players.";
+  if(skippedDup > 0) text += " Skipped " + skippedDup + " already on the roster.";
+  msg.textContent = text;
+  msg.className = "form-msg ok";
+  $("#ba-textarea").value = "";
+
+  renderPlayers();
+  renderRankings();
+  refreshMatchFormOptions();
+}
 
 function openAddTournament(){ $("#add-tournament-backdrop").classList.remove("hidden"); $("#at-name").focus(); }
 function closeAddTournament(){ $("#add-tournament-backdrop").classList.add("hidden"); $("#add-tournament-form").reset(); }
@@ -577,6 +674,12 @@ document.addEventListener("DOMContentLoaded", () => {
   $("#ap-cancel").addEventListener("click", closeAddPlayer);
   $("#add-player-form").addEventListener("submit", handleAddPlayer);
   $("#add-player-backdrop").addEventListener("click", (e) => { if(e.target.id === "add-player-backdrop") closeAddPlayer(); });
+  $("#ap-country").addEventListener("input", updateFlagPreview);
+
+  $("#open-bulk-add").addEventListener("click", openBulkAdd);
+  $("#ba-cancel").addEventListener("click", closeBulkAdd);
+  $("#bulk-add-form").addEventListener("submit", handleBulkAdd);
+  $("#bulk-add-backdrop").addEventListener("click", (e) => { if(e.target.id === "bulk-add-backdrop") closeBulkAdd(); });
 
   $("#open-add-tournament").addEventListener("click", openAddTournament);
   $("#at-cancel").addEventListener("click", closeAddTournament);

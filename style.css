@@ -333,6 +333,41 @@ form input[type=text], form input[type=number], form select{
   font-family:'JetBrains Mono', monospace;
   padding: 6px 4px;
 }
+form textarea{
+  font-family:'JetBrains Mono', monospace;
+  font-size: 13px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: white;
+  color: var(--ink);
+  resize: vertical;
+  min-height: 160px;
+  width: 100%;
+}
+.modal-help{
+  font-family:'Inter', sans-serif;
+  font-size: 13px;
+  color: var(--ink-soft);
+  text-transform: none;
+  letter-spacing: normal;
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+.modal-help code{
+  background: var(--paper-2);
+  padding: 1px 5px;
+  border-radius: 2px;
+  font-family:'JetBrains Mono', monospace;
+}
+.field-hint{
+  font-family:'Inter', sans-serif;
+  font-size: 20px;
+  text-transform: none;
+  margin: -10px 0 16px;
+  min-height: 24px;
+}
+.flag{margin-right: 5px;}
 .form-actions{display:flex; align-items:center; gap:14px;}
 .form-msg{font-size: 13px; color: var(--clay); font-family:'JetBrains Mono', monospace;}
 .form-msg.ok{color: var(--grass);}
